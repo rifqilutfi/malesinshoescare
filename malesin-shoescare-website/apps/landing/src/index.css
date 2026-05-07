@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Neo-brutalist base styles */
+:root {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  --color-primary: #f97316;
+  --color-secondary: #3b82f6;
+  --color-accent: #84cc16;
+  --shadow-brutal: 4px 4px 0 0 #000;
+  --shadow-brutal-lg: 8px 8px 0 0 #000;
+  --border-brutal: 3px solid #000;
+}
+
+body {
+  margin: 0;
+  background-color: #fafafa;
+  color: #18181b;
+}
+
+/* Brutalist utilities */
+.shadow-brutal {
+  box-shadow: var(--shadow-brutal);
+}
+
+.shadow-brutal-lg {
+  box-shadow: var(--shadow-brutal-lg);
+}
+
+.border-brutal {
+  border: var(--border-brutal);
+}
+
+.hover-lift {
+  transition: transform 150ms, box-shadow 150ms;
+}
+
+.hover-lift:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 #000;
+}
+
+.active-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
