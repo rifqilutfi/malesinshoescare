@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Upload, ShirtIcon, Loader2, AlertCircle } from "lucide-react";
+import { ShirtIcon, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { servicesService } from "@/services/services";
@@ -23,8 +23,7 @@ const OrderForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
   
   const [formData, setFormData] = useState({
     customerName: "",
@@ -40,27 +39,7 @@ const OrderForm = () => {
     urgent: false
   });
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    
-    const newPhotos = Array.from(files).slice(0, 4 - photos.length); // Max 4 photos
-    setPhotos(prev => [...prev, ...newPhotos]);
-    
-    // Create previews
-    newPhotos.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
 
-  const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
-    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
-  };
 
   const shoeTypes = [
     "Sneakers", "Formal Shoes", "Boots", "Sandals", "Sports Shoes", "High Heels", "Lainnya"
@@ -71,7 +50,7 @@ const OrderForm = () => {
     async function fetchServices() {
       try {
         setLoading(true);
-        const data = await servicesService.getAll(true);
+        const data = await servicesService.getAll();
         setServices(data);
       } catch (err) {
         console.error('Failed to fetch services:', err);
@@ -95,34 +74,24 @@ const OrderForm = () => {
       setSubmitting(true);
       
       const orderData: OrderFormData = {
-        customer_name: formData.customerName,
+        customerName: formData.customerName,
         phone: formData.phone,
-        address: formData.address,
+        address: formData.address || undefined,
         email: formData.email || undefined,
-        service_id: parseInt(formData.serviceId),
-        shoe_type: formData.shoeType,
+        serviceId: parseInt(formData.serviceId),
+        shoeType: formData.shoeType,
         quantity: formData.quantity,
         notes: formData.notes || undefined,
-        pickup_date: formData.pickupDate,
-        pickup_time: formData.pickupTime,
-        is_urgent: formData.urgent,
+        pickupDate: formData.pickupDate,
+        pickupTime: formData.pickupTime,
+        isUrgent: formData.urgent,
       };
       
-      const response = await ordersService.create(orderData);
-      
-      // Upload photos if any
-      if (photos.length > 0) {
-        const orderId = response.data.id;
-        
-        // Upload each photo
-        await Promise.all(
-          photos.map(photo => ordersService.uploadPhoto(orderId, photo, 'before'))
-        );
-      }
+      const order = await ordersService.create(orderData);
       
       toast({
         title: "Order Berhasil Dibuat!",
-        description: `Order ID: ${response.data.order_number} telah dibuat.${photos.length > 0 ? ` ${photos.length} foto berhasil diupload.` : ''}`,
+        description: `Order ID: ${order.orderNumber} telah dibuat.`,
       });
       
       // Navigate to orders list
@@ -141,7 +110,8 @@ const OrderForm = () => {
   };
 
   const selectedService = services.find(s => s.id.toString() === formData.serviceId);
-  const totalPrice = selectedService ? selectedService.price * formData.quantity : 0;
+  const servicePrice = selectedService ? parseFloat(selectedService.price) : 0;
+  const totalPrice = servicePrice * formData.quantity;
   const urgentFee = formData.urgent ? totalPrice * 0.3 : 0;
   const finalPrice = totalPrice + urgentFee;
 
@@ -225,13 +195,12 @@ const OrderForm = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="address">Alamat Lengkap</Label>
+                    <Label htmlFor="address">Alamat (Opsional)</Label>
                     <Textarea
                       id="address"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="Masukkan alamat lengkap untuk pickup dan delivery"
-                      required
                       disabled={submitting}
                     />
                   </div>
@@ -256,7 +225,7 @@ const OrderForm = () => {
                             <SelectItem key={service.id} value={service.id.toString()}>
                               <div className="flex justify-between items-center w-full">
                                 <span>{service.name}</span>
-                                <span className="text-sm text-gray-500 ml-4">{service.price_formatted}</span>
+                                <span className="text-sm text-gray-500 ml-4">Rp {Number(service.price).toLocaleString('id-ID')}</span>
                               </div>
                             </SelectItem>
                           ))}
@@ -358,51 +327,6 @@ const OrderForm = () => {
                   </div>
                 </div>
 
-                {/* Photo Upload */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Upload Foto Sepatu (Opsional)</h3>
-                  
-                  {/* Photo Previews */}
-                  {photoPreviews.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {photoPreviews.map((preview, index) => (
-                        <div key={index} className="relative group">
-                          <img src={preview} alt={`Photo ${index + 1}`} className="w-full h-24 object-cover rounded-lg" />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {photos.length < 4 && (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <Camera className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-sm text-gray-600 mb-2">Upload foto sepatu untuk dokumentasi (max 4)</p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          disabled={submitting}
-                        />
-                        <Button type="button" variant="outline" size="sm" disabled={submitting} asChild>
-                          <span>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Pilih Foto ({photos.length}/4)
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
-                  )}
-                </div>
 
                 <Button 
                   type="submit" 
@@ -443,7 +367,7 @@ const OrderForm = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Harga per sepatu:</span>
-                    <span>{selectedService.price_formatted}</span>
+                    <span>Rp {servicePrice.toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Jumlah:</span>

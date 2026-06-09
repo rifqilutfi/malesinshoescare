@@ -1,101 +1,59 @@
 /**
- * Orders Service - handles order API calls
+ * Orders Service - handles order API calls against Express backend
  */
 
 import api from '@/lib/api';
-import type { 
-  Order, 
-  OrderFormData, 
-  OrderStatus,
-  ApiResponse, 
-  PaginatedResponse 
+import type {
+  Order,
+  OrderFormData,
+  ApiResponse,
+  PaginatedData,
 } from '@/types';
 
 interface OrdersParams {
-  status?: OrderStatus;
-  from?: string;
-  to?: string;
+  status?: string;
   search?: string;
-  limit?: number;
-  per_page?: number;
   page?: number;
+  limit?: number;
 }
 
 export const ordersService = {
   /**
-   * Get all orders (paginated)
+   * Get all orders (paginated) — GET /orders
    */
-  async getAll(params?: OrdersParams): Promise<PaginatedResponse<Order>> {
+  async getAll(params?: OrdersParams): Promise<PaginatedData<Order>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== '') {
           queryParams.append(key, String(value));
         }
       });
     }
-    
-    const query = queryParams.toString();
-    const endpoint = query ? `/api/orders?${query}` : '/api/orders';
-    
-    return api.get<PaginatedResponse<Order>>(endpoint);
-  },
 
-  /**
-   * Get single order by ID
-   */
-  async getById(id: number): Promise<Order> {
-    const response = await api.get<{ data: Order }>(`/api/orders/${id}`);
+    const query = queryParams.toString();
+    const endpoint = query ? `/orders?${query}` : '/orders';
+
+    const response = await api.get<ApiResponse<PaginatedData<Order>>>(endpoint);
     return response.data;
   },
 
   /**
-   * Get order by order number
+   * Create new order — POST /orders
    */
-  async getByOrderNumber(orderNumber: string): Promise<Order | null> {
-    const result = await this.getAll({ search: orderNumber });
-    return result.data.find(o => o.order_number === orderNumber) || null;
+  async create(data: OrderFormData): Promise<Order> {
+    const response = await api.post<ApiResponse<Order>>('/orders', data);
+    return response.data;
   },
 
   /**
-   * Create new order
+   * Update order status — PATCH /orders/:id/status
    */
-  async create(data: OrderFormData): Promise<ApiResponse<Order>> {
-    return api.post<ApiResponse<Order>>('/api/orders', data);
-  },
-
-  /**
-   * Update order
-   */
-  async update(id: number, data: Partial<OrderFormData>): Promise<ApiResponse<Order>> {
-    return api.put<ApiResponse<Order>>(`/api/orders/${id}`, data);
-  },
-
-  /**
-   * Update order status
-   */
-  async updateStatus(id: number, status: OrderStatus): Promise<ApiResponse<Order>> {
-    return api.patch<ApiResponse<Order>>(`/api/orders/${id}/status`, { status });
-  },
-
-  /**
-   * Delete order
-   */
-  async delete(id: number): Promise<void> {
-    await api.delete(`/api/orders/${id}`);
-  },
-
-  /**
-   * Upload photo for an order
-   */
-  async uploadPhoto(orderId: number, file: File, type: 'before' | 'after' = 'before'): Promise<{ url: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('order_id', String(orderId));
-    formData.append('type', type);
-    
-    const response = await api.upload<{ data: { url: string } }>('/api/upload', formData);
+  async updateStatus(id: number, status: string): Promise<Order> {
+    const response = await api.patch<ApiResponse<Order>>(`/orders/${id}/status`, {
+      status: status.toLowerCase(),
+    });
     return response.data;
   },
 };

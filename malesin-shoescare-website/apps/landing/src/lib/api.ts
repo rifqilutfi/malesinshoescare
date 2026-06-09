@@ -1,43 +1,77 @@
 /**
- * API Service for malesin_shoescare Landing Page
- * Connects to the CleanStride backend API
+ * API Service for CleanStride Landing Page
+ * Connects to the Express backend API
  */
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-interface Service {
+export interface Service {
   id: number;
   name: string;
   description: string;
-  price: number;
-  price_formatted: string;
+  price: string;
   duration: string;
-  is_active: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface BookingData {
-  customer_name: string;
+export interface BookingData {
+  customerName: string;
   phone: string;
-  address: string;
+  address?: string;
   email?: string;
-  service_id: number;
-  shoe_type: string;
+  serviceId: number;
+  shoeType: string;
   quantity: number;
   notes?: string;
-  pickup_date: string;
-  pickup_time: string;
+  pickupDate: string;
+  pickupTime: string;
+  isUrgent?: boolean;
 }
 
-interface ContactData {
-  name: string;
-  email: string;
+export interface TrackingData {
+  orderNumber: string;
+  status: string;
+  progress: number;
+  shoeType: string;
+  service: {
+    name: string;
+    description: string;
+  };
+  isUrgent: boolean;
+  estimatedCompletion: string | null;
+  total: string;
+  timeline: {
+    id: number;
+    orderId: number;
+    step: string;
+    description: string;
+    completed: boolean;
+    completedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  createdAt: string;
+}
+
+export interface AIRecommendation {
+  recommendedService: string;
+  estimatedDuration: string;
+  estimatedPrice: number;
+  reason: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
   message: string;
+  data: T;
 }
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = endpoint.startsWith('/') ? `${API_URL}${endpoint}` : `${API_URL}/${endpoint}`;
-    
+
     const config: RequestInit = {
       ...options,
       headers: {
@@ -58,43 +92,39 @@ class ApiService {
   }
 
   /**
-   * Get all active services (public endpoint)
+   * Get all active services — GET /services
    */
   async getServices(): Promise<Service[]> {
     try {
-      // Try to fetch from API - BookingController returns { success: true, data: [...] }
-      const response = await this.request<{ success?: boolean; data: Service[] }>('/api/public/services');
-      console.log('Services API response:', response);
+      const response = await this.request<ApiResponse<Service[]>>('/services');
       return response.data || [];
     } catch (error) {
       console.warn('Failed to fetch services from API, using fallback data:', error);
-      // Return fallback mock data if API is not available
       return [
-        { id: 1, name: 'Deep Clean', description: 'Cuci mendalam untuk sepatu kotor berat, termasuk whitening dan penghilang noda membandel.', price: 85000, price_formatted: 'Rp 85.000', duration: '2-3 hari', is_active: true },
-        { id: 2, name: 'Quick Wash', description: 'Cuci cepat untuk noda ringan dan maintenance rutin.', price: 50000, price_formatted: 'Rp 50.000', duration: '1 hari', is_active: true },
-        { id: 3, name: 'Premium Care', description: 'Full treatment dengan protection coating untuk sepatu premium.', price: 150000, price_formatted: 'Rp 150.000', duration: '3-5 hari', is_active: true },
-        { id: 4, name: 'Unyellowing', description: 'Whitening khusus untuk sole yang sudah kuning.', price: 120000, price_formatted: 'Rp 120.000', duration: '2-3 hari', is_active: true },
+        { id: 1, name: 'Quick Clean', description: 'Pembersihan cepat untuk sepatu yang tidak terlalu kotor. Cocok untuk perawatan rutin.', price: '25000', duration: '1 Day', isActive: true, createdAt: '', updatedAt: '' },
+        { id: 2, name: 'Regular Wash', description: 'Pencucian standar dengan deep cleaning untuk sepatu sehari-hari. Termasuk pengeringan.', price: '45000', duration: '2-3 Days', isActive: true, createdAt: '', updatedAt: '' },
+        { id: 3, name: 'Deep Clean', description: 'Pencucian mendalam untuk noda membandel. Termasuk treatment khusus untuk material sensitif.', price: '75000', duration: '3-5 Days', isActive: true, createdAt: '', updatedAt: '' },
+        { id: 4, name: 'Premium Care', description: 'Layanan premium lengkap: deep clean, deodorizing, waterproofing, dan sole restoration.', price: '120000', duration: '5-7 Days', isActive: true, createdAt: '', updatedAt: '' },
       ];
     }
   }
 
   /**
-   * Submit a booking/order (creates order in backend)
+   * Submit a booking/order — POST /orders
    */
-  async submitBooking(data: BookingData): Promise<{ success: boolean; order_number?: string; message: string }> {
+  async submitBooking(data: BookingData): Promise<{ success: boolean; orderNumber?: string; message: string }> {
     try {
-      const response = await this.request<{ success: boolean; message: string; data: { order_number: string } }>('/api/public/booking', {
+      const response = await this.request<ApiResponse<{ orderNumber: string }>>('/orders', {
         method: 'POST',
         body: JSON.stringify(data),
       });
       return {
         success: true,
-        order_number: response.data.order_number,
+        orderNumber: response.data.orderNumber,
         message: response.message,
       };
     } catch (error: any) {
-      // For now, if API is not available, simulate success
-      console.warn('Booking API not available:', error.message);
+      console.warn('Booking API error:', error.message);
       return {
         success: false,
         message: error.message || 'Gagal mengirim booking. Silakan hubungi via WhatsApp.',
@@ -103,28 +133,33 @@ class ApiService {
   }
 
   /**
-   * Submit contact form
+   * Track order by code — GET /track/:orderCode
    */
-  async submitContact(data: ContactData): Promise<{ success: boolean; message: string }> {
+  async trackOrder(orderCode: string): Promise<TrackingData | null> {
     try {
-      await this.request('/api/contact', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      return {
-        success: true,
-        message: 'Pesan berhasil dikirim!',
-      };
+      const response = await this.request<ApiResponse<TrackingData>>(`/track/${orderCode}`);
+      return response.data;
     } catch (error) {
-      // Contact endpoint might not exist yet, simulate success
-      console.warn('Contact API not available');
-      return {
-        success: true,
-        message: 'Pesan berhasil dikirim! Kami akan membalas dalam 1x24 jam.',
-      };
+      console.warn('Tracking API error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get AI recommendation — POST /ai/recommend
+   */
+  async getRecommendation(material: string, condition: string): Promise<AIRecommendation | null> {
+    try {
+      const response = await this.request<ApiResponse<AIRecommendation>>('/ai/recommend', {
+        method: 'POST',
+        body: JSON.stringify({ material, condition }),
+      });
+      return response.data;
+    } catch (error) {
+      console.warn('AI recommendation error:', error);
+      return null;
     }
   }
 }
 
 export const api = new ApiService();
-export type { Service, BookingData, ContactData };

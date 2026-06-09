@@ -25,10 +25,10 @@ const galleryImages = [
 
 // Icon mapping for services
 const serviceIcons: Record<string, string> = {
-  'Deep Clean': '🧹',
-  'Quick Wash': '⚡',
+  'Quick Clean': '⚡',
+  'Regular Wash': '🧹',
+  'Deep Clean': '🧽',
   'Premium Care': '💎',
-  'Unyellowing': '✨',
 };
 
 export default function HomePage() {
@@ -135,16 +135,16 @@ export default function HomePage() {
           </p>
           <div className="grid md:grid-cols-3 gap-8">
             {(services.length > 0 ? services.slice(0, 3) : [
-              { id: 1, name: 'Deep Clean', price_formatted: 'Rp 85.000', description: 'Cuci mendalam + whitening', duration: '2-3 hari' },
-              { id: 2, name: 'Quick Wash', price_formatted: 'Rp 50.000', description: 'Cuci cepat untuk noda ringan', duration: '1 hari' },
-              { id: 3, name: 'Premium Care', price_formatted: 'Rp 150.000', description: 'Full treatment + protection', duration: '3-5 hari' },
+              { id: 1, name: 'Quick Clean', price: '25000', description: 'Pembersihan cepat untuk perawatan rutin', duration: '1 Day' },
+              { id: 2, name: 'Regular Wash', price: '45000', description: 'Pencucian standar untuk sepatu sehari-hari', duration: '2-3 Days' },
+              { id: 3, name: 'Deep Clean', price: '75000', description: 'Pencucian mendalam untuk noda membandel', duration: '3-5 Days' },
             ] as Service[]).map((service) => (
               <div key={service.id} className="bg-white border-brutal shadow-brutal-lg p-6 hover-lift">
                 <div className="text-4xl mb-4">{serviceIcons[service.name] || '👟'}</div>
                 <h3 className="text-2xl font-bold mb-2">{service.name.toUpperCase()}</h3>
                 <p className="text-gray-600 mb-4">{service.description}</p>
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">{service.price_formatted}</span>
+                  <span className="text-xl font-bold">Rp {Number(service.price).toLocaleString('id-ID')}</span>
                   <span className="bg-black text-white px-3 py-1 text-sm">{service.duration}</span>
                 </div>
               </div>

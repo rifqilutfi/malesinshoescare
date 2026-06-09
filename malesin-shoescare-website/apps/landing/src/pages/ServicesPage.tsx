@@ -57,7 +57,7 @@ export default function ServicesPage() {
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-2xl font-bold">{service.name}</h3>
                     <span className="bg-orange-500 text-black px-4 py-2 font-bold border-2 border-black">
-                      {service.price_formatted}
+                      Rp {Number(service.price).toLocaleString('id-ID')}
                     </span>
                   </div>
                   <p className="text-gray-600 mb-6">{service.description}</p>

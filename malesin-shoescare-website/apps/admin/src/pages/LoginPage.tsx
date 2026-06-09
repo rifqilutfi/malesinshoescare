@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,17 +102,6 @@ export default function LoginPage() {
                 'Login'
               )}
             </Button>
-            
-            <div className="text-sm text-center text-muted-foreground">
-              Belum punya akun?{' '}
-              <Link to="/register" className="text-blue-600 hover:underline">
-                Daftar disini
-              </Link>
-            </div>
-            
-            <Link to="/" className="text-sm text-muted-foreground hover:underline text-center">
-              ← Kembali ke halaman utama
-            </Link>
           </CardFooter>
         </form>
       </Card>

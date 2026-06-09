@@ -11,16 +11,17 @@ export default function BookingPage() {
   const [loadingServices, setLoadingServices] = useState(true);
   
   const [formData, setFormData] = useState<BookingData>({
-    customer_name: '',
+    customerName: '',
     phone: '',
     address: '',
     email: '',
-    service_id: serviceIdFromUrl ? parseInt(serviceIdFromUrl) : 0,
-    shoe_type: '',
+    serviceId: serviceIdFromUrl ? parseInt(serviceIdFromUrl) : 0,
+    shoeType: '',
     quantity: 1,
     notes: '',
-    pickup_date: '',
-    pickup_time: '',
+    pickupDate: '',
+    pickupTime: '',
+    isUrgent: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -36,9 +37,8 @@ export default function BookingPage() {
       setLoadingServices(true);
       const data = await api.getServices();
       setServices(data);
-      // If serviceId from URL, set it
       if (serviceIdFromUrl) {
-        setFormData(prev => ({ ...prev, service_id: parseInt(serviceIdFromUrl) }));
+        setFormData(prev => ({ ...prev, serviceId: parseInt(serviceIdFromUrl) }));
       }
     } catch (err) {
       console.error('Failed to fetch services:', err);
@@ -55,7 +55,7 @@ export default function BookingPage() {
     try {
       const result = await api.submitBooking(formData);
       if (result.success) {
-        setOrderNumber(result.order_number || null);
+        setOrderNumber(result.orderNumber || null);
         setSubmitted(true);
       } else {
         setError(result.message);
@@ -88,6 +88,12 @@ export default function BookingPage() {
                 className="bg-black text-white px-8 py-4 font-bold inline-block border-brutal"
               >
                 KEMBALI KE HOME
+              </a>
+              <a
+                href={`/tracking?code=${orderNumber || ''}`}
+                className="bg-blue-500 text-white px-8 py-4 font-bold inline-block border-brutal"
+              >
+                LACAK ORDER →
               </a>
               <a
                 href="https://wa.me/+628123456789"
@@ -133,8 +139,8 @@ export default function BookingPage() {
                 <input
                   type="text"
                   required
-                  value={formData.customer_name}
-                  onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow"
                   placeholder="John Doe"
                 />
@@ -164,9 +170,8 @@ export default function BookingPage() {
             </div>
 
             <div>
-              <label className="block font-bold mb-2">ALAMAT PICKUP *</label>
+              <label className="block font-bold mb-2">ALAMAT (Opsional)</label>
               <textarea
-                required
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow"
@@ -184,14 +189,14 @@ export default function BookingPage() {
               ) : (
                 <select
                   required
-                  value={formData.service_id}
-                  onChange={(e) => setFormData({ ...formData, service_id: parseInt(e.target.value) })}
+                  value={formData.serviceId}
+                  onChange={(e) => setFormData({ ...formData, serviceId: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow bg-white"
                 >
                   <option value="">-- Pilih Layanan --</option>
                   {services.map((service) => (
                     <option key={service.id} value={service.id}>
-                      {service.name} - {service.price_formatted}
+                      {service.name} - Rp {Number(service.price).toLocaleString('id-ID')}
                     </option>
                   ))}
                 </select>
@@ -204,8 +209,8 @@ export default function BookingPage() {
                 <input
                   type="text"
                   required
-                  value={formData.shoe_type}
-                  onChange={(e) => setFormData({ ...formData, shoe_type: e.target.value })}
+                  value={formData.shoeType}
+                  onChange={(e) => setFormData({ ...formData, shoeType: e.target.value })}
                   className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow"
                   placeholder="Nike Air Max, Adidas, dll"
                 />
@@ -230,8 +235,8 @@ export default function BookingPage() {
                 <input
                   type="date"
                   required
-                  value={formData.pickup_date}
-                  onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                  value={formData.pickupDate}
+                  onChange={(e) => setFormData({ ...formData, pickupDate: e.target.value })}
                   className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow"
                   min={new Date().toISOString().split('T')[0]}
                 />
@@ -240,8 +245,8 @@ export default function BookingPage() {
                 <label className="block font-bold mb-2">WAKTU PICKUP *</label>
                 <select
                   required
-                  value={formData.pickup_time}
-                  onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
+                  value={formData.pickupTime}
+                  onChange={(e) => setFormData({ ...formData, pickupTime: e.target.value })}
                   className="w-full px-4 py-3 border-brutal focus:outline-none focus:shadow-brutal transition-shadow bg-white"
                 >
                   <option value="">-- Pilih Waktu --</option>
@@ -251,6 +256,20 @@ export default function BookingPage() {
                   <option value="15:00">15:00 - 17:00</option>
                 </select>
               </div>
+            </div>
+
+            {/* Urgent checkbox */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="isUrgent"
+                checked={formData.isUrgent || false}
+                onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
+                className="w-5 h-5 border-2 border-black"
+              />
+              <label htmlFor="isUrgent" className="font-bold">
+                URGENT (+30% biaya) — Selesai dalam 1 hari
+              </label>
             </div>
 
             <div>

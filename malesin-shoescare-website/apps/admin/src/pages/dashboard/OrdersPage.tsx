@@ -5,31 +5,37 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
 import { 
   Search, 
   Package, 
   Loader2, 
   AlertCircle,
   Eye,
-  ChevronDown,
   RefreshCw,
-  Trash2
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "@/services/orders";
 import { useToast } from "@/hooks/use-toast";
-import type { Order, OrderStatus } from "@/types";
+import type { Order } from "@/types";
 
-const statusOptions = [
-  { value: "pending", label: "Pending", color: "bg-yellow-500" },
-  { value: "pickup", label: "Pickup", color: "bg-blue-500" },
-  { value: "processing", label: "Proses", color: "bg-purple-500" },
-  { value: "qc", label: "Quality Control", color: "bg-orange-500" },
-  { value: "ready", label: "Siap Antar", color: "bg-green-500" },
-  { value: "delivery", label: "Delivery", color: "bg-teal-500" },
-  { value: "completed", label: "Selesai", color: "bg-emerald-500" },
-  { value: "cancelled", label: "Batal", color: "bg-red-500" },
+/** Format price number to Rp XX.XXX */
+function formatPrice(price: string | number): string {
+  const num = typeof price === 'string' ? parseFloat(price) : price;
+  return `Rp ${num.toLocaleString('id-ID')}`;
+}
+
+const statusOptions: { value: string; label: string; color: string }[] = [
+  { value: "PENDING", label: "Pending", color: "bg-yellow-500" },
+  { value: "PICKUP", label: "Pickup", color: "bg-blue-500" },
+  { value: "PROCESSING", label: "Proses", color: "bg-purple-500" },
+  { value: "QC", label: "Quality Control", color: "bg-orange-500" },
+  { value: "READY", label: "Siap Antar", color: "bg-green-500" },
+  { value: "DELIVERY", label: "Delivery", color: "bg-teal-500" },
+  { value: "COMPLETED", label: "Selesai", color: "bg-emerald-500" },
+  { value: "CANCELLED", label: "Batal", color: "bg-red-500" },
 ];
 
 const OrdersPage = () => {
@@ -43,7 +49,6 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -54,13 +59,13 @@ const OrdersPage = () => {
       setLoading(true);
       setError(null);
       
-      const params: any = { per_page: 50 };
+      const params: { status?: string; limit?: number; search?: string } = { limit: 50 };
       if (statusFilter !== "all") {
-        params.status = statusFilter;
+        params.status = statusFilter.toLowerCase();
       }
       
       const data = await ordersService.getAll(params);
-      setOrders(data.data || []);
+      setOrders(data.orders || []);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
       setError(err instanceof Error ? err.message : 'Gagal memuat orders');
@@ -72,7 +77,7 @@ const OrdersPage = () => {
   const handleStatusUpdate = async (orderId: number, newStatus: string) => {
     try {
       setUpdating(true);
-      await ordersService.updateStatus(orderId, newStatus as OrderStatus);
+      await ordersService.updateStatus(orderId, newStatus);
       toast({
         title: "Status Diperbarui",
         description: `Order berhasil diubah ke ${statusOptions.find(s => s.value === newStatus)?.label}`,
@@ -95,7 +100,7 @@ const OrdersPage = () => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
-      order.order_number?.toLowerCase().includes(search) ||
+      order.orderNumber?.toLowerCase().includes(search) ||
       order.customer?.name?.toLowerCase().includes(search) ||
       order.customer?.phone?.includes(search)
     );
@@ -181,7 +186,7 @@ const OrdersPage = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Table */}
+      {/* Orders List */}
       <Card className="bg-white/70 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -209,7 +214,7 @@ const OrdersPage = () => {
                       <Package className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{order.order_number}</p>
+                      <p className="font-medium">{order.orderNumber}</p>
                       <p className="text-sm text-gray-600">{order.customer?.name}</p>
                       <p className="text-xs text-gray-500">{order.customer?.phone}</p>
                     </div>
@@ -219,8 +224,8 @@ const OrdersPage = () => {
                     <p className="text-sm text-gray-600">{order.quantity} sepatu</p>
                   </div>
                   <div className="text-center hidden lg:block">
-                    <p className="font-bold text-green-600">{order.total_formatted}</p>
-                    <p className="text-xs text-gray-500">{order.created_at}</p>
+                    <p className="font-bold text-green-600">{formatPrice(order.total)}</p>
+                    <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString('id-ID')}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     {getStatusBadge(order.status)}
@@ -237,9 +242,9 @@ const OrdersPage = () => {
 
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detail Order {selectedOrder?.order_number}</DialogTitle>
+            <DialogTitle>Detail Order {selectedOrder?.orderNumber}</DialogTitle>
             <DialogDescription>
               Update status pesanan
             </DialogDescription>
@@ -262,12 +267,22 @@ const OrdersPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Total</p>
-                  <p className="font-medium text-green-600">{selectedOrder.total_formatted}</p>
+                  <p className="font-medium text-green-600">{formatPrice(selectedOrder.total)}</p>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">Alamat</p>
-                  <p className="font-medium">{selectedOrder.customer?.address}</p>
+                <div>
+                  <p className="text-sm text-gray-500">Jenis Sepatu</p>
+                  <p className="font-medium">{selectedOrder.shoeType}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">Jumlah</p>
+                  <p className="font-medium">{selectedOrder.quantity} pasang</p>
+                </div>
+                {selectedOrder.customer?.address && (
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-500">Alamat</p>
+                    <p className="font-medium">{selectedOrder.customer.address}</p>
+                  </div>
+                )}
                 {selectedOrder.notes && (
                   <div className="col-span-2">
                     <p className="text-sm text-gray-500">Catatan</p>
@@ -276,25 +291,39 @@ const OrdersPage = () => {
                 )}
               </div>
 
-              {/* Photos Gallery */}
-              {selectedOrder.photos && selectedOrder.photos.length > 0 && (
+              {/* Progress */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-500">Progress</p>
+                  <p className="text-sm font-medium">{selectedOrder.progress}%</p>
+                </div>
+                <Progress value={selectedOrder.progress} className="h-2" />
+              </div>
+
+              {/* Timeline */}
+              {selectedOrder.timeline && selectedOrder.timeline.length > 0 && (
                 <div className="border-t pt-4">
-                  <p className="text-sm text-gray-500 mb-2">Foto Sepatu ({selectedOrder.photos.length})</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {selectedOrder.photos.map((photo, index) => (
-                      <a 
-                        key={photo.id || index} 
-                        href={photo.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <img 
-                          src={photo.url} 
-                          alt={`Foto ${index + 1}`}
-                          className="w-full h-20 object-cover rounded-lg border hover:border-blue-500 transition-colors"
-                        />
-                      </a>
+                  <p className="text-sm text-gray-500 mb-3">Timeline</p>
+                  <div className="space-y-3">
+                    {selectedOrder.timeline.map((step) => (
+                      <div key={step.id} className="flex items-start space-x-3">
+                        {step.completed ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Clock className="h-5 w-5 text-gray-300 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className={`text-sm font-medium ${step.completed ? 'text-gray-900' : 'text-gray-400'}`}>
+                            {step.step}
+                          </p>
+                          <p className="text-xs text-gray-500">{step.description}</p>
+                          {step.completedAt && (
+                            <p className="text-xs text-green-600 mt-0.5">
+                              {new Date(step.completedAt).toLocaleString('id-ID')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -328,54 +357,7 @@ const OrdersPage = () => {
             </div>
           )}
 
-          <DialogFooter className="flex justify-between">
-            {selectedOrder && !['processing', 'qc', 'delivery'].includes(selectedOrder.status) && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" disabled={deleting}>
-                    {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                    Hapus Order
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Hapus Order?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Apakah Anda yakin ingin menghapus order {selectedOrder.order_number}? 
-                      Tindakan ini tidak dapat dibatalkan.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={async () => {
-                        try {
-                          setDeleting(true);
-                          await ordersService.delete(selectedOrder.id);
-                          toast({
-                            title: "Order Dihapus",
-                            description: `Order ${selectedOrder.order_number} berhasil dihapus`,
-                          });
-                          setSelectedOrder(null);
-                          fetchOrders();
-                        } catch (err) {
-                          toast({
-                            title: "Error",
-                            description: err instanceof Error ? err.message : "Gagal menghapus order",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setDeleting(false);
-                        }
-                      }}
-                    >
-                      Ya, Hapus
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+          <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedOrder(null)}>
               Tutup
             </Button>

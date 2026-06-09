@@ -1,6 +1,6 @@
 /**
  * CleanStride API Client
- * Handles all HTTP requests to the Laravel API with Sanctum authentication
+ * Handles all HTTP requests to the Express API with JWT authentication
  */
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -13,14 +13,13 @@ interface ApiOptions {
 
 interface ApiError {
   message: string;
-  errors?: Record<string, string[]>;
+  errors?: { field: string; message: string }[];
 }
 
 class ApiClient {
   private token: string | null = null;
 
   constructor() {
-    // Load token from localStorage on init
     this.token = localStorage.getItem('auth_token');
   }
 
@@ -47,10 +46,8 @@ class ApiClient {
         'Accept': 'application/json',
         ...headers,
       },
-      credentials: 'include', // Important for cookies (SPA auth)
     };
 
-    // Add Authorization header if token exists
     if (this.token) {
       (config.headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
     }
@@ -60,10 +57,9 @@ class ApiClient {
     }
 
     const url = endpoint.startsWith('/') ? `${API_URL}${endpoint}` : `${API_URL}/${endpoint}`;
-    
+
     const response = await fetch(url, config);
 
-    // Handle no-content responses
     if (response.status === 204) {
       return {} as T;
     }
@@ -78,58 +74,26 @@ class ApiClient {
     return data;
   }
 
-  // GET request
   async get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  // POST request
   async post<T>(endpoint: string, body?: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: 'POST', body });
   }
 
-  // PUT request
   async put<T>(endpoint: string, body?: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: 'PUT', body });
   }
 
-  // PATCH request
   async patch<T>(endpoint: string, body?: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: 'PATCH', body });
   }
 
-  // DELETE request
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
-
-  // File upload
-  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
-    const config: RequestInit = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: formData,
-    };
-
-    if (this.token) {
-      (config.headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
-    }
-
-    const url = endpoint.startsWith('/') ? `${API_URL}${endpoint}` : `${API_URL}/${endpoint}`;
-    const response = await fetch(url, config);
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Upload failed');
-    }
-
-    return data;
-  }
 }
 
-// Export singleton instance
 export const api = new ApiClient();
 export default api;

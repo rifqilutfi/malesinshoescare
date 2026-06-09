@@ -1,62 +1,61 @@
 /**
- * Auth Service - handles authentication API calls (token-based)
+ * Auth Service - handles authentication API calls (JWT)
  */
 
 import api from '@/lib/api';
-import type { AuthResponse, LoginCredentials, RegisterData, User } from '@/types';
+import type { AuthResponse, LoginCredentials, User } from '@/types';
 
 export const authService = {
   /**
-   * Login user
+   * Login user — POST /auth/login
    */
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/api/login', credentials);
-    
-    // Save token for subsequent requests
-    if (response.token) {
-      api.setToken(response.token);
+  async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
+    const response = await api.post<AuthResponse>('/auth/login', credentials);
+
+    if (response.data.token) {
+      api.setToken(response.data.token);
     }
-    
-    return response;
+
+    return response.data;
   },
 
   /**
-   * Register new user
+   * Logout — clear local token (no backend call needed)
    */
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/api/register', data);
-    
-    if (response.token) {
-      api.setToken(response.token);
-    }
-    
-    return response;
-  },
-
-  /**
-   * Logout current user
-   */
-  async logout(): Promise<void> {
-    try {
-      await api.post('/api/logout');
-    } catch (e) {
-      // Ignore logout errors
-    }
+  logout(): void {
     api.setToken(null);
   },
 
   /**
-   * Get current authenticated user
-   */
-  async getUser(): Promise<User> {
-    return api.get<User>('/api/user');
-  },
-
-  /**
-   * Check if user is authenticated
+   * Check if user is authenticated by verifying token exists
    */
   isAuthenticated(): boolean {
     return !!api.getToken();
+  },
+
+  /**
+   * Get user info from JWT token payload (no API call needed)
+   */
+  getUserFromToken(): User | null {
+    const token = api.getToken();
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      // Check expiry
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        api.setToken(null);
+        return null;
+      }
+      return {
+        id: payload.id,
+        name: payload.name,
+        email: payload.email,
+      };
+    } catch {
+      api.setToken(null);
+      return null;
+    }
   },
 };
 

@@ -1,19 +1,17 @@
 /**
- * Auth Context - manages authentication state across the app
+ * Auth Context - manages authentication state across the admin app
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '@/services/auth';
-import type { User, LoginCredentials, RegisterData } from '@/types';
+import type { User, LoginCredentials } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,22 +20,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = useCallback(async () => {
-    if (!authService.isAuthenticated()) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const userData = await authService.getUser();
-      setUser(userData);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+  // On mount, check if we have a valid token and extract user from it
+  const checkAuth = useCallback(() => {
+    const userData = authService.getUserFromToken();
+    setUser(userData);
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -47,31 +34,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const response = await authService.login(credentials);
-      setUser(response.user);
+      const { user: userData } = await authService.login(credentials);
+      setUser(userData);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (data: RegisterData) => {
-    setIsLoading(true);
-    try {
-      const response = await authService.register(data);
-      setUser(response.user);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    setIsLoading(true);
-    try {
-      await authService.logout();
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+  const logout = () => {
+    authService.logout();
+    setUser(null);
   };
 
   return (
@@ -81,9 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
-        register,
         logout,
-        checkAuth,
       }}
     >
       {children}

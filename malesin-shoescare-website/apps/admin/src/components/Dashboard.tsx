@@ -3,26 +3,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
   ShirtIcon, 
-  TruckIcon, 
-  Users, 
-  DollarSign, 
-  Clock, 
   Package,
   Loader2,
   AlertCircle,
   ArrowRight,
-  Wrench
+  Wrench,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { reportsService } from "@/services/reports";
 import { ordersService } from "@/services/orders";
-import type { DashboardStats, Order } from "@/types";
+import type { Order } from "@/types";
+
+/** Format price number to Rp XX.XXX */
+function formatPrice(price: string | number): string {
+  const num = typeof price === 'string' ? parseFloat(price) : price;
+  return `Rp ${num.toLocaleString('id-ID')}`;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,13 +33,9 @@ const Dashboard = () => {
         setLoading(true);
         setError(null);
         
-        const [statsData, ordersData] = await Promise.all([
-          reportsService.getDashboardStats(),
-          ordersService.getAll({ limit: 5 }),
-        ]);
-        
-        setStats(statsData);
-        setRecentOrders(ordersData.data || []);
+        const ordersData = await ordersService.getAll({ limit: 5 });
+        setRecentOrders(ordersData.orders || []);
+        setTotalOrders(ordersData.pagination?.total || 0);
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
         setError('Failed to load dashboard data');
@@ -52,22 +49,18 @@ const Dashboard = () => {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { color: string; label: string }> = {
-      pending: { color: "bg-yellow-500", label: "Pending" },
-      pickup: { color: "bg-blue-500", label: "Pickup" },
-      processing: { color: "bg-purple-500", label: "Proses" },
-      qc: { color: "bg-orange-500", label: "QC" },
-      ready: { color: "bg-green-500", label: "Siap" },
-      delivery: { color: "bg-teal-500", label: "Delivery" },
-      completed: { color: "bg-emerald-500", label: "Selesai" },
-      cancelled: { color: "bg-red-500", label: "Batal" }
+      PENDING: { color: "bg-yellow-500", label: "Pending" },
+      PICKUP: { color: "bg-blue-500", label: "Pickup" },
+      PROCESSING: { color: "bg-purple-500", label: "Proses" },
+      QC: { color: "bg-orange-500", label: "QC" },
+      READY: { color: "bg-green-500", label: "Siap" },
+      DELIVERY: { color: "bg-teal-500", label: "Delivery" },
+      COMPLETED: { color: "bg-emerald-500", label: "Selesai" },
+      CANCELLED: { color: "bg-red-500", label: "Batal" }
     };
     
     const statusInfo = statusMap[status] || { color: "bg-gray-500", label: status };
     return <Badge className={`${statusInfo.color} text-white`}>{statusInfo.label}</Badge>;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
   if (loading) {
@@ -104,32 +97,15 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Order Hari Ini</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
             <Package className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.today.orders ?? 0}</div>
-            <p className="text-xs text-blue-100">
-              {stats?.today.orders_change && stats.today.orders_change > 0 ? '+' : ''}
-              {stats?.today.orders_change ?? 0}% dari kemarin
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Hari Ini</CardTitle>
-            <DollarSign className="h-4 w-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats?.today.revenue ?? 0)}</div>
-            <p className="text-xs text-green-100">
-              {stats?.today.revenue_change && stats.today.revenue_change > 0 ? '+' : ''}
-              {stats?.today.revenue_change ?? 0}% dari kemarin
-            </p>
+            <div className="text-2xl font-bold">{totalOrders}</div>
+            <p className="text-xs text-blue-100">Semua pesanan</p>
           </CardContent>
         </Card>
 
@@ -139,25 +115,29 @@ const Dashboard = () => {
             <Wrench className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.processing_orders ?? 0}</div>
+            <div className="text-2xl font-bold">
+              {recentOrders.filter(o => !['COMPLETED', 'CANCELLED'].includes(o.status)).length}
+            </div>
             <p className="text-xs text-purple-100">Orders aktif</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+        <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Aktif</CardTitle>
-            <Users className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium">Selesai</CardTitle>
+            <ShirtIcon className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.active_customers ?? 0}</div>
-            <p className="text-xs text-orange-100">30 hari terakhir</p>
+            <div className="text-2xl font-bold">
+              {recentOrders.filter(o => o.status === 'COMPLETED').length}
+            </div>
+            <p className="text-xs text-emerald-100">Orders completed</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card 
           className="bg-white/70 backdrop-blur-sm cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => navigate('/dashboard/orders')}
@@ -178,32 +158,14 @@ const Dashboard = () => {
 
         <Card 
           className="bg-white/70 backdrop-blur-sm cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => navigate('/dashboard/workshop')}
+          onClick={() => navigate('/dashboard/services')}
         >
           <CardHeader>
             <CardTitle className="flex items-center text-purple-700">
               <Wrench className="h-5 w-5 mr-2" />
-              Workshop
+              Kelola Layanan
             </CardTitle>
-            <CardDescription>Proses pencucian dan quality control</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full">
-              Buka <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="bg-white/70 backdrop-blur-sm cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => navigate('/dashboard/kurir')}
-        >
-          <CardHeader>
-            <CardTitle className="flex items-center text-teal-700">
-              <TruckIcon className="h-5 w-5 mr-2" />
-              Kurir
-            </CardTitle>
-            <CardDescription>Pickup dan delivery management</CardDescription>
+            <CardDescription>Lihat dan kelola layanan</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full">
@@ -240,13 +202,13 @@ const Dashboard = () => {
                       <ShirtIcon className="h-4 w-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium">{order.order_number}</p>
+                      <p className="font-medium">{order.orderNumber}</p>
                       <p className="text-sm text-gray-600">{order.customer?.name}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     {getStatusBadge(order.status)}
-                    <p className="text-sm text-gray-600 mt-1">{order.total_formatted}</p>
+                    <p className="text-sm text-gray-600 mt-1">{formatPrice(order.total)}</p>
                   </div>
                 </div>
               ))}

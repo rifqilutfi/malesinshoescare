@@ -7,24 +7,16 @@ import {
   LayoutDashboard, 
   Package, 
   Wrench, 
-  TruckIcon, 
-  CreditCard, 
-  BarChart3,
   Bell,
   LogOut,
   Menu,
   X,
-  Loader2,
   ChevronDown,
   ChevronRight,
   Settings,
   ClipboardList,
-  PackageCheck,
   PackagePlus,
   CheckCircle,
-  AlertCircle,
-  Clock,
-  User
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,11 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const mockNotifications = [
   { id: 1, type: 'order', title: 'Order Baru', message: 'Order #ORD-XK8M2NP1 baru saja masuk dari website', time: '5 menit lalu', read: false, icon: Package },
   { id: 2, type: 'status', title: 'Status Update', message: 'Order #CLS-241219001 selesai diproses', time: '15 menit lalu', read: false, icon: CheckCircle },
-  { id: 3, type: 'warning', title: 'Stok Menipis', message: 'Sabun cuci sepatu tinggal 5 botol', time: '1 jam lalu', read: false, icon: AlertCircle },
-  { id: 4, type: 'pickup', title: 'Pickup Dijadwalkan', message: '3 order menunggu pickup hari ini', time: '2 jam lalu', read: true, icon: TruckIcon },
-  { id: 5, type: 'customer', title: 'Customer Baru', message: 'Andi Pratama mendaftar sebagai customer', time: '3 jam lalu', read: true, icon: User },
-  { id: 6, type: 'qc', title: 'QC Selesai', message: '5 sepatu lolos quality control', time: '4 jam lalu', read: true, icon: PackageCheck },
-  { id: 7, type: 'payment', title: 'Pembayaran Diterima', message: 'Transfer Rp 255.000 dari BCA dikonfirmasi', time: '5 jam lalu', read: true, icon: CreditCard },
+  { id: 3, type: 'order', title: 'Order Baru', message: '2 order baru menunggu konfirmasi', time: '1 jam lalu', read: true, icon: Package },
 ];
 
 interface MenuItem {
@@ -56,7 +44,7 @@ interface MenuGroup {
 const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["orders", "admin"]);
 
@@ -82,24 +70,6 @@ const DashboardLayout = () => {
       icon: Settings,
       items: [
         { path: "/dashboard/services", icon: Wrench, label: "Kelola Layanan" },
-        { path: "/dashboard/payment", icon: CreditCard, label: "Transaksi" },
-        { path: "/dashboard/reports", icon: BarChart3, label: "Laporan" },
-      ]
-    },
-    {
-      id: "kurir",
-      label: "Kurir",
-      icon: TruckIcon,
-      items: [
-        { path: "/dashboard/kurir", icon: TruckIcon, label: "Pickup & Delivery" },
-      ]
-    },
-    {
-      id: "workshop",
-      label: "Workshop",
-      icon: Wrench,
-      items: [
-        { path: "/dashboard/workshop", icon: PackageCheck, label: "Proses & QC" },
       ]
     },
   ];
@@ -225,17 +195,12 @@ const DashboardLayout = () => {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={async () => {
-                  await logout();
+                onClick={() => {
+                  logout();
                   navigate("/login");
                 }}
-                disabled={isLoading}
               >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <LogOut className="h-4 w-4 mr-2" />
-                )}
+                <LogOut className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">{user?.name || 'Logout'}</span>
               </Button>
             </div>

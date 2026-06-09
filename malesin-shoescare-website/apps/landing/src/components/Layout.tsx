@@ -21,6 +21,12 @@ export default function Layout() {
             <Link to="/booking" className="font-semibold hover:text-orange-500 transition-colors">
               BOOKING
             </Link>
+            <Link to="/tracking" className="font-semibold hover:text-orange-500 transition-colors">
+              LACAK ORDER
+            </Link>
+            <Link to="/recommend" className="font-semibold hover:text-purple-600 transition-colors flex items-center gap-1">
+              ✨ AI
+            </Link>
             <Link to="/contact" className="font-semibold hover:text-orange-500 transition-colors">
               KONTAK
             </Link>
