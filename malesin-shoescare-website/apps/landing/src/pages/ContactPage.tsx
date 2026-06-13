@@ -43,10 +43,11 @@ export default function ContactPage() {
               <div className="space-y-6">
                 <div className="bg-lime-400 border-brutal shadow-brutal p-6">
                   <h3 className="font-bold text-lg mb-2">📱 WHATSAPP</h3>
-                  <p>082143366966</p>
+                  <p>087890224566</p>
                   <a 
-                    href="082143366966" 
+                    href="https://wa.me/+6287890224566" 
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-block mt-4 bg-black text-white px-4 py-2 font-bold"
                   >
                     CHAT SEKARANG →

@@ -17,6 +17,7 @@ import {
   ClipboardList,
   PackagePlus,
   CheckCircle,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,6 +71,7 @@ const DashboardLayout = () => {
       icon: Settings,
       items: [
         { path: "/dashboard/services", icon: Wrench, label: "Kelola Layanan" },
+        { path: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
       ]
     },
   ];

@@ -24,6 +24,14 @@ export interface AuthResponse {
   };
 }
 
+// Category
+export interface Category {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Service
 export interface Service {
   id: number;
@@ -32,8 +40,20 @@ export interface Service {
   price: string; // Decimal comes as string from Prisma
   duration: string;
   isActive: boolean;
+  categoryId: number | null;
+  imageUrl: string | null;
+  category: Category | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ServiceFormData {
+  name: string;
+  description: string;
+  price: number;
+  duration: string;
+  categoryId?: number | null;
+  isActive?: boolean;
 }
 
 // Customer
@@ -106,6 +126,18 @@ export interface OrderFormData {
   pickupDate: string;
   pickupTime: string;
   isUrgent?: boolean;
+}
+
+// Analytics
+export interface AnalyticsDashboard {
+  kpiCards: {
+    totalOrders: number;
+    completedOrders: number;
+    revenueEstimate: number;
+    mostPopularService: string;
+  };
+  ordersByStatus: { status: string; count: number }[];
+  servicePopularity: { name: string; count: number }[];
 }
 
 // API Response wrappers

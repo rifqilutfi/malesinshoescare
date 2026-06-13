@@ -96,7 +96,7 @@ export default function BookingPage() {
                 LACAK ORDER →
               </a>
               <a
-                href="https://wa.me/+628123456789"
+                href="https://wa.me/+6287890224566"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-green-500 text-white px-8 py-4 font-bold inline-flex items-center gap-2 border-brutal"
@@ -293,7 +293,7 @@ export default function BookingPage() {
 
             <p className="text-center text-gray-500 text-sm">
               Atau booking langsung via{' '}
-              <a href="https://wa.me/+628123456789" target="_blank" rel="noopener noreferrer" className="text-green-600 font-bold hover:underline">
+              <a href="https://wa.me/+6287890224566" target="_blank" rel="noopener noreferrer" className="text-green-600 font-bold hover:underline">
                 WhatsApp
               </a>
             </p>

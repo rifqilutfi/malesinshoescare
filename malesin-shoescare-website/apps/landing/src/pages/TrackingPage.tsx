@@ -1,7 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, CheckCircle, Clock, Package, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle, Clock, Package, AlertCircle, MessageCircle } from 'lucide-react';
 import { api, TrackingData } from '@/lib/api';
+
+const statusDescriptions: Record<string, { emoji: string; title: string; desc: string }> = {
+  PENDING: { emoji: '📋', title: 'Menunggu Konfirmasi', desc: 'Order kamu sudah masuk dan menunggu konfirmasi dari tim kami.' },
+  PICKUP: { emoji: '🚗', title: 'Proses Penjemputan', desc: 'Tim kami sedang dalam perjalanan untuk menjemput sepatu kamu.' },
+  PROCESSING: { emoji: '🧼', title: 'Sedang Dicuci', desc: 'Sepatu kamu sedang menjalani proses pencucian profesional.' },
+  QC: { emoji: '🔍', title: 'Quality Control', desc: 'Tim QC sedang memeriksa hasil pencucian untuk memastikan kualitas terbaik.' },
+  READY: { emoji: '✅', title: 'Siap Diantar', desc: 'Sepatu kamu sudah bersih dan siap untuk diantar kembali!' },
+  DELIVERY: { emoji: '📦', title: 'Sedang Diantar', desc: 'Sepatu kamu sedang dalam perjalanan ke alamat kamu.' },
+  COMPLETED: { emoji: '🎉', title: 'Selesai!', desc: 'Order telah selesai. Terima kasih sudah menggunakan layanan kami!' },
+  CANCELLED: { emoji: '❌', title: 'Dibatalkan', desc: 'Order ini telah dibatalkan.' },
+};
+
+function getTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Baru saja';
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  return `${days} hari lalu`;
+}
+
+function getDaysRemaining(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  if (days < 0) return 'Sudah lewat estimasi';
+  if (days === 0) return 'Hari ini';
+  if (days === 1) return 'Besok';
+  return `${days} hari lagi`;
+}
 
 export default function TrackingPage() {
   const [searchParams] = useSearchParams();
@@ -30,13 +64,16 @@ export default function TrackingPage() {
   };
 
   // Auto-search if code from URL
-  useState(() => {
+  useEffect(() => {
     if (codeFromUrl) {
       setLoading(true);
       setSearched(true);
-      api.trackOrder(codeFromUrl).then(setTracking).catch(() => setTracking(null)).finally(() => setLoading(false));
+      api.trackOrder(codeFromUrl)
+        .then(setTracking)
+        .catch(() => setTracking(null))
+        .finally(() => setLoading(false));
     }
-  });
+  }, [codeFromUrl]);
 
   const getStatusLabel = (status: string): { label: string; color: string } => {
     const map: Record<string, { label: string; color: string }> = {
@@ -51,6 +88,9 @@ export default function TrackingPage() {
     };
     return map[status] || { label: status, color: 'bg-gray-500' };
   };
+
+  const statusInfo = tracking ? statusDescriptions[tracking.status] : null;
+  const daysRemaining = tracking ? getDaysRemaining(tracking.estimatedCompletion) : null;
 
   return (
     <div>
@@ -108,6 +148,36 @@ export default function TrackingPage() {
 
           {tracking && (
             <div className="space-y-8">
+              {/* Status Explanation Card */}
+              {statusInfo && (
+                <div className={`border-brutal shadow-brutal p-6 ${
+                  tracking.status === 'COMPLETED' ? 'bg-emerald-50' :
+                  tracking.status === 'CANCELLED' ? 'bg-red-50' :
+                  'bg-purple-50'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <span className="text-4xl">{statusInfo.emoji}</span>
+                    <div>
+                      <h3 className="text-xl font-bold mb-1">{statusInfo.title}</h3>
+                      <p className="text-gray-600">{statusInfo.desc}</p>
+                      {tracking.timeline && (() => {
+                        const lastCompleted = [...tracking.timeline]
+                          .reverse()
+                          .find(s => s.completedAt);
+                        if (lastCompleted?.completedAt) {
+                          return (
+                            <p className="text-sm text-gray-400 mt-2">
+                              Update terakhir: {getTimeAgo(lastCompleted.completedAt)}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Order Info Card */}
               <div className="border-brutal shadow-brutal-lg p-8 bg-white">
                 <div className="flex items-center justify-between mb-6">
@@ -141,6 +211,11 @@ export default function TrackingPage() {
                         : '-'
                       }
                     </p>
+                    {daysRemaining && tracking.status !== 'COMPLETED' && tracking.status !== 'CANCELLED' && (
+                      <p className="text-xs text-purple-600 font-medium mt-0.5">
+                        {daysRemaining}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -156,50 +231,100 @@ export default function TrackingPage() {
                     <span className="text-gray-500">Progress</span>
                     <span className="font-bold">{tracking.progress}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 h-4 border-2 border-black">
+                  <div className="w-full bg-gray-200 h-4 border-2 border-black overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-purple-500 to-purple-700 transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-purple-500 to-purple-700 transition-all duration-1000 ease-out relative"
                       style={{ width: `${tracking.progress}%` }}
-                    />
+                    >
+                      {tracking.progress > 0 && tracking.progress < 100 && (
+                        <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/30 animate-pulse" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Timeline */}
+              {/* Timeline Bubbles */}
               <div className="border-brutal shadow-brutal-lg p-8 bg-white">
                 <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                   <Package className="w-5 h-5" />
                   TIMELINE ORDER
                 </h3>
-                <div className="space-y-4">
-                  {tracking.timeline.map((step, index) => (
-                    <div key={step.id} className="flex items-start gap-4">
-                      {/* Connector line */}
-                      <div className="flex flex-col items-center">
-                        {step.completed ? (
-                          <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <Clock className="w-8 h-8 text-gray-300 flex-shrink-0" />
-                        )}
-                        {index < tracking.timeline.length - 1 && (
-                          <div className={`w-0.5 h-8 mt-1 ${step.completed ? 'bg-green-300' : 'bg-gray-200'}`} />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <p className={`font-bold ${step.completed ? 'text-gray-900' : 'text-gray-400'}`}>
-                          {step.step}
-                        </p>
-                        <p className="text-sm text-gray-500">{step.description}</p>
-                        {step.completedAt && (
-                          <p className="text-xs text-green-600 mt-1">
-                            ✅ {new Date(step.completedAt).toLocaleString('id-ID')}
+                <div className="relative">
+                  {tracking.timeline.map((step, index) => {
+                    const isLast = index === tracking.timeline.length - 1;
+                    const isActive = step.completed && (!tracking.timeline[index + 1]?.completed);
+                    
+                    return (
+                      <div key={step.id} className="flex items-start gap-4 relative">
+                        {/* Connector line */}
+                        <div className="flex flex-col items-center">
+                          <div className={`
+                            w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border-2
+                            transition-all duration-300
+                            ${step.completed 
+                              ? 'bg-green-500 border-green-600 text-white' 
+                              : isActive 
+                                ? 'bg-purple-100 border-purple-500 text-purple-600'
+                                : 'bg-gray-100 border-gray-300 text-gray-400'
+                            }
+                            ${isActive ? 'ring-4 ring-purple-200 animate-pulse' : ''}
+                          `}>
+                            {step.completed ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : (
+                              <span className="text-sm font-bold">{index + 1}</span>
+                            )}
+                          </div>
+                          {!isLast && (
+                            <div className={`w-0.5 h-12 mt-1 transition-colors duration-300 ${
+                              step.completed ? 'bg-green-300' : 'bg-gray-200'
+                            }`} />
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className={`flex-1 pb-6 ${isLast ? '' : ''}`}>
+                          <p className={`font-bold text-base ${
+                            step.completed ? 'text-gray-900' : 
+                            isActive ? 'text-purple-700' : 'text-gray-400'
+                          }`}>
+                            {step.step}
                           </p>
-                        )}
+                          <p className={`text-sm ${step.completed ? 'text-gray-600' : 'text-gray-400'}`}>
+                            {step.description}
+                          </p>
+                          {step.completedAt && (
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <Clock className="w-3.5 h-3.5 text-green-500" />
+                              <p className="text-xs text-green-600">
+                                {new Date(step.completedAt).toLocaleString('id-ID')} • {getTimeAgo(step.completedAt)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* WhatsApp CTA */}
+              {tracking.status !== 'COMPLETED' && tracking.status !== 'CANCELLED' && (
+                <a
+                  href={`https://wa.me/+6287890224566?text=${encodeURIComponent(
+                    `Halo, saya ingin bertanya tentang order ${tracking.orderNumber}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-green-500 text-white px-8 py-4 font-bold text-lg border-brutal shadow-brutal text-center hover-lift active-press"
+                >
+                  <span className="inline-flex items-center justify-center gap-3">
+                    <MessageCircle className="w-6 h-6" />
+                    Ada pertanyaan? Hubungi via WhatsApp
+                  </span>
+                </a>
+              )}
             </div>
           )}
         </div>

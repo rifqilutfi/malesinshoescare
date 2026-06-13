@@ -76,7 +76,7 @@ export default function HomePage() {
                   BOOKING SEKARANG →
                 </Link>
                 <a
-                  href="https://wa.me/+628123456789"
+                  href="https://wa.me/+6287890224566"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-green-500 text-white px-8 py-4 font-bold text-lg border-brutal shadow-brutal hover-lift active-press inline-flex items-center gap-2"
@@ -300,7 +300,7 @@ export default function HomePage() {
               BOOKING SEKARANG
             </Link>
             <a
-              href="https://wa.me/+628123456789"
+              href="https://wa.me/+6287890224566"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 text-white px-12 py-5 font-bold text-xl border-brutal shadow-brutal-lg inline-flex items-center gap-2 hover-lift active-press"

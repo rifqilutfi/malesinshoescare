@@ -25,13 +25,13 @@ export default function Layout() {
               LACAK ORDER
             </Link>
             <Link to="/recommend" className="font-semibold hover:text-purple-600 transition-colors flex items-center gap-1">
-              ✨ AI
+              REKOMENDASI LAYANAN
             </Link>
             <Link to="/contact" className="font-semibold hover:text-orange-500 transition-colors">
               KONTAK
             </Link>
             <a 
-              href="https://wa.me/+628123456789" 
+              href="https://wa.me/+6287890224566" 
               target="_blank"
               rel="noopener noreferrer"
               className="bg-green-500 text-white px-4 py-2 font-bold hover:bg-green-600 transition-colors flex items-center gap-2"
@@ -109,7 +109,7 @@ export default function Layout() {
               <ul className="space-y-3 text-gray-400">
                 <li>
                   <a 
-                    href="https://wa.me/+628123456789" 
+                    href="https://wa.me/+6287890224566" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center space-x-3 hover:text-green-400 transition-colors group"
@@ -117,7 +117,7 @@ export default function Layout() {
                     <div className="bg-green-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
                       <MessageCircle className="w-5 h-5 text-white" />
                     </div>
-                    <span>0821 4336 6966</span>
+                    <span>0878 9022 4566</span>
                   </a>
                 </li>
                 <li>
@@ -151,7 +151,7 @@ export default function Layout() {
                 INSTAGRAM
               </a>
               <a 
-                href="https://wa.me/+628123456789" 
+                href="https://wa.me/+6287890224566" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="bg-green-500 text-white px-4 py-2 font-bold hover:bg-green-600 transition-colors flex items-center gap-2"
