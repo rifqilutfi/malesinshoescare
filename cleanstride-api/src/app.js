@@ -10,6 +10,7 @@ const serviceRoutes = require('./routes/service.routes');
 const orderRoutes = require('./routes/order.routes');
 const trackingRoutes = require('./routes/tracking.routes');
 const aiRoutes = require('./routes/ai.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/services', serviceRoutes);
 app.use('/orders', orderRoutes);
 app.use('/track', trackingRoutes);
 app.use('/ai', aiRoutes);
+app.use('/analytics', analyticsRoutes);
 
 // Health check
 app.get('/', (_req, res) => {
