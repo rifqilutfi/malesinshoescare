@@ -93,6 +93,51 @@ class ApiClient {
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
+
+  /**
+   * POST with FormData (for file uploads).
+   * Does NOT set Content-Type — browser sets multipart boundary automatically.
+   */
+  async postForm<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = endpoint.startsWith('/') ? `${API_URL}${endpoint}` : `${API_URL}/${endpoint}`;
+
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'An error occurred');
+    return data;
+  }
+
+  /**
+   * PUT with FormData (for file uploads).
+   */
+  async putForm<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = endpoint.startsWith('/') ? `${API_URL}${endpoint}` : `${API_URL}/${endpoint}`;
+
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'An error occurred');
+    return data;
+  }
 }
 
 export const api = new ApiClient();

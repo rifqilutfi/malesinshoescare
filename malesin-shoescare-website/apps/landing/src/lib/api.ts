@@ -12,6 +12,16 @@ export interface Service {
   price: string;
   duration: string;
   isActive: boolean;
+  categoryId: number | null;
+  imageUrl: string | null;
+  category: Category | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +72,13 @@ export interface AIRecommendation {
   reason: string;
 }
 
+export interface AIImageAnalysis {
+  recommendedService: string;
+  condition: string;
+  explanation: string;
+  confidence: number;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -101,11 +118,24 @@ class ApiService {
     } catch (error) {
       console.warn('Failed to fetch services from API, using fallback data:', error);
       return [
-        { id: 1, name: 'Quick Clean', description: 'Pembersihan cepat untuk sepatu yang tidak terlalu kotor. Cocok untuk perawatan rutin.', price: '25000', duration: '1 Day', isActive: true, createdAt: '', updatedAt: '' },
-        { id: 2, name: 'Regular Wash', description: 'Pencucian standar dengan deep cleaning untuk sepatu sehari-hari. Termasuk pengeringan.', price: '45000', duration: '2-3 Days', isActive: true, createdAt: '', updatedAt: '' },
-        { id: 3, name: 'Deep Clean', description: 'Pencucian mendalam untuk noda membandel. Termasuk treatment khusus untuk material sensitif.', price: '75000', duration: '3-5 Days', isActive: true, createdAt: '', updatedAt: '' },
-        { id: 4, name: 'Premium Care', description: 'Layanan premium lengkap: deep clean, deodorizing, waterproofing, dan sole restoration.', price: '120000', duration: '5-7 Days', isActive: true, createdAt: '', updatedAt: '' },
+        { id: 1, name: 'Quick Clean', description: 'Pembersihan cepat untuk sepatu yang tidak terlalu kotor. Cocok untuk perawatan rutin.', price: '25000', duration: '1 Day', isActive: true, categoryId: null, imageUrl: null, category: null, createdAt: '', updatedAt: '' },
+        { id: 2, name: 'Regular Wash', description: 'Pencucian standar dengan deep cleaning untuk sepatu sehari-hari. Termasuk pengeringan.', price: '45000', duration: '2-3 Days', isActive: true, categoryId: null, imageUrl: null, category: null, createdAt: '', updatedAt: '' },
+        { id: 3, name: 'Deep Clean', description: 'Pencucian mendalam untuk noda membandel. Termasuk treatment khusus untuk material sensitif.', price: '75000', duration: '3-5 Days', isActive: true, categoryId: null, imageUrl: null, category: null, createdAt: '', updatedAt: '' },
+        { id: 4, name: 'Premium Care', description: 'Layanan premium lengkap: deep clean, deodorizing, waterproofing, dan sole restoration.', price: '120000', duration: '5-7 Days', isActive: true, categoryId: null, imageUrl: null, category: null, createdAt: '', updatedAt: '' },
       ];
+    }
+  }
+
+  /**
+   * Get all categories — GET /services/categories
+   */
+  async getCategories(): Promise<Category[]> {
+    try {
+      const response = await this.request<ApiResponse<Category[]>>('/services/categories');
+      return response.data || [];
+    } catch (error) {
+      console.warn('Failed to fetch categories:', error);
+      return [];
     }
   }
 
@@ -146,7 +176,7 @@ class ApiService {
   }
 
   /**
-   * Get AI recommendation — POST /ai/recommend
+   * Get AI recommendation (text-based) — POST /ai/recommend
    */
   async getRecommendation(material: string, condition: string): Promise<AIRecommendation | null> {
     try {
@@ -157,6 +187,34 @@ class ApiService {
       return response.data;
     } catch (error) {
       console.warn('AI recommendation error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Analyze shoe image with AI — POST /ai/analyze
+   * Uses FormData (no JSON Content-Type header so browser sets multipart boundary)
+   */
+  async analyzeShoeImage(file: File): Promise<AIImageAnalysis | null> {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const url = `${API_URL}/ai/analyze`;
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Image analysis failed');
+      }
+
+      return (data as ApiResponse<AIImageAnalysis>).data;
+    } catch (error) {
+      console.warn('AI image analysis error:', error);
       return null;
     }
   }
