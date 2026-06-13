@@ -20,6 +20,20 @@ async function main() {
   });
   console.log('✓ Admin user created (admin@cleanstride.com / password)');
 
+  // ── Categories ────────────────────────────────
+  const categoryNames = ['Cleaning', 'Restoration', 'Protection', 'Customization'];
+
+  for (const name of categoryNames) {
+    await prisma.category.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
+  console.log(`✓ ${categoryNames.length} categories seeded`);
+
+  const cleaningCategory = await prisma.category.findUnique({ where: { name: 'Cleaning' } });
+
   // ── Services ─────────────────────────────────
   const services = [
     {
@@ -28,6 +42,7 @@ async function main() {
       price: 25000,
       duration: '1 Day',
       isActive: true,
+      categoryId: cleaningCategory?.id || null,
     },
     {
       name: 'Regular Wash',
@@ -35,6 +50,7 @@ async function main() {
       price: 45000,
       duration: '2-3 Days',
       isActive: true,
+      categoryId: cleaningCategory?.id || null,
     },
     {
       name: 'Deep Clean',
@@ -42,6 +58,7 @@ async function main() {
       price: 75000,
       duration: '3-5 Days',
       isActive: true,
+      categoryId: cleaningCategory?.id || null,
     },
     {
       name: 'Premium Care',
@@ -49,6 +66,7 @@ async function main() {
       price: 120000,
       duration: '5-7 Days',
       isActive: true,
+      categoryId: cleaningCategory?.id || null,
     },
   ];
 

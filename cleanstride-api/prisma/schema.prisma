@@ -44,6 +44,20 @@ model Customer {
 }
 
 // ──────────────────────────────────────────────
+// Category — service categories
+// ──────────────────────────────────────────────
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  services Service[]
+
+  @@map("categories")
+}
+
+// ──────────────────────────────────────────────
 // Service — shoe cleaning packages
 // ──────────────────────────────────────────────
 model Service {
@@ -53,11 +67,15 @@ model Service {
   price       Decimal  @db.Decimal(10, 2)
   duration    String   @db.VarChar(50)
   isActive    Boolean  @default(true) @map("is_active")
+  categoryId  Int?     @map("category_id")
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  orders Order[]
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orders   Order[]
 
+  @@index([categoryId])
   @@map("services")
 }
 

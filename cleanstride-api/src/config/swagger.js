@@ -75,6 +75,15 @@ const options = {
         },
 
         // ── Response Schemas ─────────────────────────
+        Category: {
+          type: 'object',
+          properties: {
+            id: { type: 'integer', example: 1 },
+            name: { type: 'string', example: 'Cleaning' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
         Service: {
           type: 'object',
           properties: {
@@ -84,8 +93,36 @@ const options = {
             price: { type: 'string', description: 'Decimal string', example: '25000.00' },
             duration: { type: 'string', example: '1 Day' },
             isActive: { type: 'boolean', example: true },
+            categoryId: { type: 'integer', nullable: true, example: 1 },
+            imageUrl: { type: 'string', nullable: true, example: '/uploads/services/svc-123.jpg' },
+            category: { $ref: '#/components/schemas/Category', nullable: true },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        AIImageAnalysis: {
+          type: 'object',
+          properties: {
+            recommendedService: { type: 'string', example: 'Deep Clean' },
+            condition: { type: 'string', example: 'Heavy Dirt' },
+            explanation: { type: 'string', example: 'The shoe shows significant dirt buildup...' },
+            confidence: { type: 'number', example: 85 },
+          },
+        },
+        AnalyticsDashboard: {
+          type: 'object',
+          properties: {
+            kpiCards: {
+              type: 'object',
+              properties: {
+                totalOrders: { type: 'integer' },
+                completedOrders: { type: 'integer' },
+                revenueEstimate: { type: 'number' },
+                mostPopularService: { type: 'string' },
+              },
+            },
+            ordersByStatus: { type: 'array', items: { type: 'object', properties: { status: { type: 'string' }, count: { type: 'integer' } } } },
+            servicePopularity: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, count: { type: 'integer' } } } },
           },
         },
         Customer: {
@@ -401,8 +438,8 @@ const options = {
       '/ai/recommend': {
         post: {
           tags: ['AI'],
-          summary: 'Get AI service recommendation',
-          description: 'Public endpoint. Uses Gemini AI to recommend a service based on shoe material and condition. Falls back to keyword-based matching if Gemini is unavailable.',
+          summary: 'Get AI service recommendation (text-based)',
+          description: 'Public endpoint. Uses AI (via OpenRouter) to recommend a service based on shoe material and condition.',
           requestBody: {
             required: true,
             content: {
@@ -426,6 +463,126 @@ const options = {
               },
             },
             422: { description: 'Validation error' },
+          },
+        },
+      },
+      '/ai/analyze': {
+        post: {
+          tags: ['AI'],
+          summary: 'Analyze shoe image with AI',
+          description: 'Public endpoint. Upload a shoe image for AI vision analysis (via OpenRouter). Returns condition, recommended service, explanation, and confidence score.',
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  required: ['image'],
+                  properties: {
+                    image: { type: 'string', format: 'binary', description: 'Shoe image (JPEG, PNG, WebP, max 5MB)' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Image analyzed',
+              content: {
+                'application/json': {
+                  schema: {
+                    allOf: [
+                      { $ref: '#/components/schemas/SuccessResponse' },
+                      { type: 'object', properties: { data: { $ref: '#/components/schemas/AIImageAnalysis' } } },
+                    ],
+                  },
+                },
+              },
+            },
+            400: { description: 'No image uploaded' },
+          },
+        },
+      },
+      '/services/admin': {
+        get: {
+          tags: ['Services (Admin)'],
+          summary: 'List all services (admin)',
+          description: 'Admin-only. Returns all services including inactive ones.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: 'List of all services',
+              content: { 'application/json': { schema: { allOf: [{ $ref: '#/components/schemas/SuccessResponse' }, { type: 'object', properties: { data: { type: 'array', items: { $ref: '#/components/schemas/Service' } } } }] } } },
+            },
+            401: { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/services/categories': {
+        get: {
+          tags: ['Services'],
+          summary: 'List all categories',
+          description: 'Public endpoint. Returns all service categories.',
+          responses: {
+            200: {
+              description: 'List of categories',
+              content: { 'application/json': { schema: { allOf: [{ $ref: '#/components/schemas/SuccessResponse' }, { type: 'object', properties: { data: { type: 'array', items: { $ref: '#/components/schemas/Category' } } } }] } } },
+            },
+          },
+        },
+      },
+      '/services/{id}': {
+        put: {
+          tags: ['Services (Admin)'],
+          summary: 'Update a service',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          requestBody: {
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' }, description: { type: 'string' }, price: { type: 'number' },
+                    duration: { type: 'string' }, categoryId: { type: 'integer' }, isActive: { type: 'boolean' },
+                    image: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { 200: { description: 'Service updated' }, 401: { description: 'Unauthorized' } },
+        },
+        delete: {
+          tags: ['Services (Admin)'],
+          summary: 'Delete a service',
+          description: 'Deletes a service only if no orders reference it.',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { 200: { description: 'Service deleted' }, 401: { description: 'Unauthorized' }, 409: { description: 'Service has orders' } },
+        },
+      },
+      '/services/{id}/toggle': {
+        patch: {
+          tags: ['Services (Admin)'],
+          summary: 'Toggle service active status',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+          responses: { 200: { description: 'Status toggled' }, 401: { description: 'Unauthorized' } },
+        },
+      },
+      '/analytics/dashboard': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get dashboard analytics',
+          description: 'Admin-only. Returns KPI cards, orders-by-status chart data, and service popularity chart data.',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: 'Analytics data',
+              content: { 'application/json': { schema: { allOf: [{ $ref: '#/components/schemas/SuccessResponse' }, { type: 'object', properties: { data: { $ref: '#/components/schemas/AnalyticsDashboard' } } }] } } },
+            },
+            401: { description: 'Unauthorized' },
           },
         },
       },
