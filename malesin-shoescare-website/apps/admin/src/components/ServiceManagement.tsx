@@ -37,7 +37,7 @@ const emptyForm: ServiceFormState = {
   description: '',
   price: '',
   duration: '',
-  categoryId: '',
+  categoryId: 'none',
   isActive: true,
   image: null,
 };
@@ -103,7 +103,7 @@ const ServiceManagement = () => {
       description: service.description,
       price: String(parseFloat(service.price)),
       duration: service.duration,
-      categoryId: service.categoryId ? String(service.categoryId) : '',
+      categoryId: service.categoryId ? String(service.categoryId) : 'none',
       isActive: service.isActive,
       image: null,
     });
@@ -131,7 +131,7 @@ const ServiceManagement = () => {
         description: form.description,
         price,
         duration: form.duration,
-        categoryId: form.categoryId ? parseInt(form.categoryId) : null,
+        categoryId: form.categoryId && form.categoryId !== 'none' ? parseInt(form.categoryId) : null,
         isActive: form.isActive,
         image: form.image,
       };
@@ -432,7 +432,7 @@ const ServiceManagement = () => {
                   <SelectValue placeholder="Pilih kategori (opsional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tanpa Kategori</SelectItem>
+                  <SelectItem value="none">Tanpa Kategori</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                   ))}
